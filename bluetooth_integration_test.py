@@ -2,17 +2,14 @@ from spike import PrimeHub, LightMatrix, Button, StatusLight, ForceSensor, Motio
 from spike.control import wait_for_seconds, wait_until, Timer
 from math import *
 
-# This example finds and connects to a peripheral running the
-# UART service (e.g. ble_simple_peripheral.py).
-
 import ubluetooth
 import urandom
 import struct
 import utime
-import micropython
-
 from micropython import const
 
+# This example finds and connects to a peripheral running the
+# UART service (e.g. ble_simple_peripheral.py).
 _ADV_TYPE_FLAGS = const(0x01)
 _ADV_TYPE_NAME = const(0x09)
 _ADV_TYPE_UUID16_COMPLETE = const(0x3)
