@@ -6,7 +6,7 @@ from math import *
 # UART service (e.g. ble_simple_peripheral.py).
 
 import ubluetooth
-import random
+import urandom
 import struct
 import utime
 import micropython
