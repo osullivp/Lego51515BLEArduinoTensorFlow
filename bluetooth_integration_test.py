@@ -53,34 +53,11 @@ _UART_SERVICE_UUID = ubluetooth.UUID("0000FFE0-0000-1000-8000-00805F9B34FB")
 _UART_RX_CHAR_UUID = ubluetooth.UUID("0000FFE1-0000-1000-8000-00805F9B34FB")
 _UART_TX_CHAR_UUID = ubluetooth.UUID("0000FFE2-0000-1000-8000-00805F9B34FB")
 
-def decode_field(payload, adv_type):
-    i = 0
-    result = []
-    while i + 1 < len(payload):
-        if payload[i + 1] == adv_type:
-            result.append(payload[i + 2 : i + payload[i] + 1])
-        i += 1 + payload[i]
-    return result
-
-def decode_name(payload):
-    n = decode_field(payload, _ADV_TYPE_NAME)
-    return str(n[0], "utf-8") if n else ""
-
-def decode_services(payload):
-    services = []
-    for u in decode_field(payload, _ADV_TYPE_UUID16_COMPLETE):
-        services.append(ubluetooth.UUID(struct.unpack("<h", u)[0]))
-    for u in decode_field(payload, _ADV_TYPE_UUID32_COMPLETE):
-        services.append(ubluetooth.UUID(struct.unpack("<d", u)[0]))
-    for u in decode_field(payload, _ADV_TYPE_UUID128_COMPLETE):
-        services.append(ubluetooth.UUID(u))
-    return services
-
 class BLESimpleCentral:
     def __init__(self, ble):
         self._ble = ble
         self._ble.active(True)
-        self._ble.irq(self._irq)
+        self._ble.irq(callback=self._irq)
 
         self._reset()
 
@@ -230,6 +207,29 @@ class BLESimpleCentral:
     # Set handler for when data is received over the UART.
     def on_notify(self, callback):
         self._notify_callback = callback
+        
+    def decode_field(payload, adv_type):
+    i = 0
+    result = []
+    while i + 1 < len(payload):
+        if payload[i + 1] == adv_type:
+            result.append(payload[i + 2 : i + payload[i] + 1])
+        i += 1 + payload[i]
+    return result
+
+    def decode_name(payload):
+        n = decode_field(payload, _ADV_TYPE_NAME)
+        return str(n[0], "utf-8") if n else ""
+
+    def decode_services(payload):
+        services = []
+        for u in decode_field(payload, _ADV_TYPE_UUID16_COMPLETE):
+            services.append(ubluetooth.UUID(struct.unpack("<h", u)[0]))
+        for u in decode_field(payload, _ADV_TYPE_UUID32_COMPLETE):
+            services.append(ubluetooth.UUID(struct.unpack("<d", u)[0]))
+        for u in decode_field(payload, _ADV_TYPE_UUID128_COMPLETE):
+            services.append(ubluetooth.UUID(u))
+        return services
 
 def demo():
     print("Started")
