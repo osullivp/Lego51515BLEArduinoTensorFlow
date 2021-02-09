@@ -1,285 +1,282 @@
 from spike import PrimeHub, LightMatrix, Button, StatusLight, ForceSensor, MotionSensor, Speaker, ColorSensor, App, DistanceSensor, Motor, MotorPair
 from spike.control import wait_for_seconds, wait_until, Timer
-from math import *
-
-import ubluetooth
-import urandom
-import struct
 import utime
+import ubluetooth
+import ubinascii
+import struct
 from micropython import const
 
-# This example finds and connects to a peripheral running the
-# UART service (e.g. ble_simple_peripheral.py).
-_ADV_TYPE_FLAGS = const(0x01)
-_ADV_TYPE_NAME = const(0x09)
-_ADV_TYPE_UUID16_COMPLETE = const(0x3)
-_ADV_TYPE_UUID32_COMPLETE = const(0x5)
-_ADV_TYPE_UUID128_COMPLETE = const(0x7)
-_ADV_TYPE_UUID16_MORE = const(0x2)
-_ADV_TYPE_UUID32_MORE = const(0x4)
-_ADV_TYPE_UUID128_MORE = const(0x6)
-_ADV_TYPE_APPEARANCE = const(0x19)
+class BLEHandler:
 
-_IRQ_CENTRAL_CONNECT = const(1)
-_IRQ_CENTRAL_DISCONNECT = const(2)
-_IRQ_GATTS_WRITE = const(3)
-_IRQ_GATTS_READ_REQUEST = const(4)
-_IRQ_SCAN_RESULT = const(5)
-_IRQ_SCAN_DONE = const(6)
-_IRQ_PERIPHERAL_CONNECT = const(7)
-_IRQ_PERIPHERAL_DISCONNECT = const(8)
-_IRQ_GATTC_SERVICE_RESULT = const(9)
-_IRQ_GATTC_SERVICE_DONE = const(10)
-_IRQ_GATTC_CHARACTERISTIC_RESULT = const(11)
-_IRQ_GATTC_CHARACTERISTIC_DONE = const(12)
-_IRQ_GATTC_DESCRIPTOR_RESULT = const(13)
-_IRQ_GATTC_DESCRIPTOR_DONE = const(14)
-_IRQ_GATTC_READ_RESULT = const(15)
-_IRQ_GATTC_READ_DONE = const(16)
-_IRQ_GATTC_WRITE_DONE = const(17)
-_IRQ_GATTC_NOTIFY = const(18)
-_IRQ_GATTC_INDICATE = const(19)
+    def __init__(self):
+        # constants
+        self.__IRQ_SCAN_RESULT = const(1 << 4)
+        self.__IRQ_SCAN_COMPLETE = const(1 << 5)
+        self.__IRQ_PERIPHERAL_CONNECT = const(1 << 6)
+        self.__IRQ_PERIPHERAL_DISCONNECT = const(1 << 7)
+        self.__IRQ_GATTC_SERVICE_RESULT = const(1 << 8)
+        self.__IRQ_GATTC_CHARACTERISTIC_RESULT = const(1 << 9)
+        self.__IRQ_GATTC_READ_RESULT = const(1 << 11)
+        self.__IRQ_GATTC_NOTIFY = const(1 << 13)
 
-_ADV_IND = const(0x00)
-_ADV_DIRECT_IND = const(0x01)
-_ADV_SCAN_IND = const(0x02)
-_ADV_NONCONN_IND = const(0x03)
+        # enter device specific address and service and characteristic UUIDs (from nRF Connect app)
+        self.__DEVICE_ID = b'diN\x80*^'
+        self.__PERIPHERAL_SERVICE_UUID = ubluetooth.UUID(0xFFE0)
+        self.__PERIPHERAL_SERVICE_CHAR = ubluetooth.UUID(0xFFE1)
 
-#HM-10 Bluetooth BLE module UART service
-_UART_SERVICE_UUID = ubluetooth.UUID("0000FFE0-0000-1000-8000-00805F9B34FB")
-_UART_RX_CHAR_UUID = ubluetooth.UUID("0000FFE1-0000-1000-8000-00805F9B34FB")
-_UART_TX_CHAR_UUID = ubluetooth.UUID("0000FFE2-0000-1000-8000-00805F9B34FB")
+        # class specific
+        self.__ble = ubluetooth.BLE()
+        self.__ble.active(True)
+        self.__ble.irq(handler=self.__irq)
+        self.__decoder = Decoder()
+        self.__reset()
 
-class BLESimpleCentral:
-    def __init__(self, ble):
-        self._ble = ble
-        self._ble.active(True)
-        self._ble.irq(callback=self._irq)
+    def __reset(self):
+        # cached data
+        self.__addr = None
+        self.__addr_type = None
+        self.__adv_type = None
+        self.__services = None
+        self.__man_data = None
+        self.__name = None
+        self.__conn_handle = None
+        self.__value_handle = None
 
-        self._reset()
+        # reserved callbacks
+        self.__scan_callback = None
+        self.__read_callback = None
+        self.__notify_callback = None
+        self.__connected_callback = None
+        self.__disconnected_callback = None
 
-    def _reset(self):
-        # Cached name and address from a successful scan.
-        self._name = None
-        self._addr_type = None
-        self._addr = None
+    # start scan for ble devices
+    def scan_start(self, timeout, callback):
+        self.__scan_callback = callback
+        self.__ble.gap_scan(timeout, 30000, 30000)
 
-        # Callbacks for completion of various operations.
-        # These reset back to None after being invoked.
-        self._scan_callback = None
-        self._conn_callback = None
-        self._read_callback = None
+    # stop current scan
+    def scan_stop(self):
+        self.__ble.gap_scan(None)
 
-        # Persistent callback for when new data is notified from the device.
-        self._notify_callback = None
+    # write gatt client data
+    def write(self, data, adv_value=None):
+        if not self.__is_connected():
+            return
+        if adv_value:
+            self.__ble.gattc_write(self.__conn_handle, adv_value, data)
+        else:
+            self.__ble.gattc_write(self.__conn_handle, self.__value_handle, data)
 
-        # Connected device.
-        self._conn_handle = None
-        self._start_handle = None
-        self._end_handle = None
-        self._tx_handle = None
-        self._rx_handle = None
+    # read gatt client
+    def read(self, callback):
+        if not self.__is_connected():
+            return
+        self.__read_callback = callback
+        self.__ble.gattc_read(self.__conn_handle, self.__value_handle)
 
-    def _irq(self, event, data):
-        if event == _IRQ_SCAN_RESULT:
+    # connect to ble device
+    def connect(self, addr_type, addr):
+        self.__ble.gap_connect(addr_type, addr)
+        
+    # disconnect from ble device
+    def disconnect(self):
+        if not self.__is_connected():
+            return
+        self.__ble.gap_disconnect(self.__conn_handle)
+        self.__reset()
+
+    # get notification
+    def on_notify(self, callback):
+        self.__notify_callback = callback
+
+    # get callback on connect
+    def on_connect(self, callback):
+        self.__connected_callback = callback
+
+    # get callback on connect
+    def on_disconnect(self, callback):
+        self.__disconnected_callback = callback
+
+    # +-------------------+
+    # | Private Functions |
+    # +-------------------+
+
+    # connection status
+    def __is_connected(self):
+        return self.__conn_handle is not None
+
+    # ble event handler
+    def __irq(self, event, data):
+        # called for every result of a ble scan
+        if event == self.__IRQ_SCAN_RESULT:
             addr_type, addr, adv_type, rssi, adv_data = data
             print(ubinascii.hexlify(addr))
-            if adv_type in (_ADV_IND, _ADV_DIRECT_IND) and _UART_SERVICE_UUID in decode_services(
-                adv_data
-            ):
-                # Found a potential device, remember it and stop scanning.
-                self._addr_type = addr_type
-                self._addr = bytes(
-                    addr
-                )# Note: addr buffer is owned by caller so need to copy it.
-                self._name = decode_name(adv_data) or "?"
-                self._ble.gap_scan(None)
+            print(self.__decoder.decode_services(adv_data), addr_type)
+            #if self.__PERIPHERAL_SERVICE_UUID in self.__decoder.decode_services(adv_data):
+            if bytes(self.__DEVICE_ID) == bytes(addr):
+                print('device found')
+                self.__addr_type = addr_type
+                self.__addr = bytes(addr)
+                self.__adv_type = adv_type
+                self.__name = self.__decoder.decode_name(adv_data)
+                self.__services = self.__decoder.decode_services(adv_data)
+                #self.__man_data = self.__decoder.decode_manufacturer(adv_data)
+                self.scan_stop()
 
-        elif event == _IRQ_SCAN_DONE:
-            if self._scan_callback:
-                if self._addr:
-                    # Found a device during the scan (and the scan was explicitly stopped).
-                    self._scan_callback(self._addr_type, self._addr, self._name)
-                    self._scan_callback = None
-                else:
-                    # Scan utimed out.
-                    self._scan_callback(None, None, None)
-
-        elif event == _IRQ_PERIPHERAL_CONNECT:
-            # Connect successful.
-            conn_handle, addr_type, addr = data
-            if addr_type == self._addr_type and addr == self._addr:
-                self._conn_handle = conn_handle
-                self._ble.gattc_discover_services(self._conn_handle)
-
-        elif event == _IRQ_PERIPHERAL_DISCONNECT:
-            # Disconnect (either initiated by us or the remote end).
-            conn_handle, _, _ = data
-            if conn_handle == self._conn_handle:
-                # If it was initiated by us, it'll already be reset.
-                self._reset()
-
-        elif event == _IRQ_GATTC_SERVICE_RESULT:
-            # Connected device returned a service.
-            conn_handle, start_handle, end_handle, uuid = data
-            print("service", data)
-            if conn_handle == self._conn_handle and uuid == _UART_SERVICE_UUID:
-                self._start_handle, self._end_handle = start_handle, end_handle
-
-        elif event == _IRQ_GATTC_SERVICE_DONE:
-            # Service query complete.
-            if self._start_handle and self._end_handle:
-                self._ble.gattc_discover_characteristics(
-                    self._conn_handle, self._start_handle, self._end_handle
-                )
+        # called after a ble scan is finished
+        elif event == self.__IRQ_SCAN_COMPLETE:
+            if self.__addr:
+                if self.__scan_callback:
+                    self.__scan_callback(self.__addr_type, self.__addr, self.__man_data)
+                self.__scan_callback = None
             else:
-                print("Failed to find uart service.")
+                self.__scan_callback(None, None, None)
 
-        elif event == _IRQ_GATTC_CHARACTERISTIC_RESULT:
-            # Connected device returned a characteristic.
+        # called if a peripheral device is connected
+        elif event == self.__IRQ_PERIPHERAL_CONNECT:
+            print('Device connected')
+            conn_handle, addr_type, addr = data
+            self.__conn_handle = conn_handle
+            self.__ble.gattc_discover_services(self.__conn_handle)
+
+        # called if a peripheral device is disconnected
+        elif event == self.__IRQ_PERIPHERAL_DISCONNECT:
+            conn_handle, _, _ = data
+            self.__disconnected_callback()
+            if conn_handle == self.__conn_handle:
+                self.__reset()
+
+        # called if a service is returned
+        elif event == self.__IRQ_GATTC_SERVICE_RESULT:
+            print('getting service')
+            conn_handle, start_handle, end_handle, uuid = data
+            print(uuid)
+            if conn_handle == self.__conn_handle and uuid == self.__PERIPHERAL_SERVICE_UUID:
+                print('found service')
+                self.__ble.gattc_discover_characteristics(self.__conn_handle, start_handle, end_handle)
+
+        # called if a characteristic is returned
+        elif event == self.__IRQ_GATTC_CHARACTERISTIC_RESULT:
+            print('getting characteristics')
             conn_handle, def_handle, value_handle, properties, uuid = data
             print(uuid)
-            if conn_handle == self._conn_handle and uuid == _UART_RX_CHAR_UUID:
-                self._rx_handle = value_handle
-            if conn_handle == self._conn_handle and uuid == _UART_TX_CHAR_UUID:
-                self._tx_handle = value_handle
+            if conn_handle == self.__conn_handle and uuid == self.__PERIPHERAL_SERVICE_CHAR:
+                print('found characteristic')
+                self.__value_handle = value_handle
+                # finished discovering, connecting finished
+                self.__connected_callback()
 
-        elif event == _IRQ_GATTC_CHARACTERISTIC_DONE:
-            # Characteristic query complete.
-            if self._tx_handle is not None and self._rx_handle is not None:
-                # We've finished connecting and discovering device, fire the connect callback.
-                if self._conn_callback:
-                    self._conn_callback()
-            else:
-                print("Failed to find uart rx characteristic.")
+        # called if data was successfully read
+        elif event == self.__IRQ_GATTC_READ_RESULT:
+            conn_handle, value_handle, char_data = data
+            if self.__read_callback:
+                self.__read_callback(char_data)
 
-        elif event == _IRQ_GATTC_WRITE_DONE:
-            conn_handle, value_handle, status = data
-            print("TX complete")
-
-        elif event == _IRQ_GATTC_NOTIFY:
+        # called if a notification appears
+        elif event == self.__IRQ_GATTC_NOTIFY:
             conn_handle, value_handle, notify_data = data
-            if conn_handle == self._conn_handle and value_handle == self._tx_handle:
-                if self._notify_callback:
-                    self._notify_callback(notify_data)
+            if self.__notify_callback:
+                self.__notify_callback(notify_data)
 
-    # Returns true if we've successfully connected and discovered characteristics.
-    def is_connected(self):
-        return (
-            self._conn_handle is not None
-            and self._tx_handle is not None
-            and self._rx_handle is not None
-        )
+class Decoder:
 
-    # Find a device advertising the environmental sensor service.
-    def scan(self, callback=None):
-        self._addr_type = None
-        self._addr = None
-        self._scan_callback = callback
-        self._ble.gap_scan(2000, 30000, 30000)
+    def __init__(self):
+        self.__COMPANY_IDENTIFIER_CODES = {"0123": "TEST"}
 
-    # Connect to the specified device (otherwise use cached address from a scan).
-    def connect(self, addr_type=None, addr=None, callback=None):
-        self._addr_type = addr_type or self._addr_type
-        self._addr = addr or self._addr
-        self._conn_callback = callback
-        if self._addr_type is None or self._addr is None:
-            return False
-        self._ble.gap_connect(self._addr_type, self._addr)
-        return True
+    def decode_manufacturer(self, payload):
+        man_data = []
+        n = self.__decode_field(payload, const(0xFF))
+        if not n:
+            return []
+        company_identifier = ubinascii.hexlify(struct.pack('<h', *struct.unpack('>h', n[0])))
+        company_name = self.__COMPANY_IDENTIFIER_CODES.get(company_identifier.decode(), "?")
+        company_data = n[0][2:]
+        man_data.append(company_identifier.decode())
+        man_data.append(company_name)
+        man_data.append(company_data)
+        return man_data
 
-    # Disconnect from current device.
-    def disconnect(self):
-        if not self._conn_handle:
-            return
-        self._ble.gap_disconnect(self._conn_handle)
-        self._reset()
+    def decode_name(self, payload):
+        n = self.__decode_field(payload, const(0x09))
+        return str(n[0], "utf-8") if n else "parsing failed!"
 
-    # Send data over the UART
-    def write(self, v, response=False):
-        if not self.is_connected():
-            return
-        self._ble.gattc_write(self._conn_handle, self._rx_handle, v, 1 if response else 0)
-
-    # Set handler for when data is received over the UART.
-    def on_notify(self, callback):
-        self._notify_callback = callback
-        
-    def decode_field(payload, adv_type):
-    i = 0
-    result = []
-    while i + 1 < len(payload):
-        if payload[i + 1] == adv_type:
-            result.append(payload[i + 2 : i + payload[i] + 1])
-        i += 1 + payload[i]
-    return result
-
-    def decode_name(payload):
-        n = decode_field(payload, _ADV_TYPE_NAME)
-        return str(n[0], "utf-8") if n else ""
-
-    def decode_services(payload):
+    def decode_services(self, payload):
         services = []
-        for u in decode_field(payload, _ADV_TYPE_UUID16_COMPLETE):
+        for u in self.__decode_field(payload, const(0x3)):
             services.append(ubluetooth.UUID(struct.unpack("<h", u)[0]))
-        for u in decode_field(payload, _ADV_TYPE_UUID32_COMPLETE):
+        for u in self.__decode_field(payload, const(0x5)):
             services.append(ubluetooth.UUID(struct.unpack("<d", u)[0]))
-        for u in decode_field(payload, _ADV_TYPE_UUID128_COMPLETE):
+        for u in self.__decode_field(payload, const(0x7)):
             services.append(ubluetooth.UUID(u))
         return services
 
-def demo():
-    print("Started")
-    ble = ubluetooth.BLE()
-    central = BLESimpleCentral(ble)
+    def __decode_field(self, payload, adv_type):
+        i = 0
+        result = []
+        while i + 1 < len(payload):
+            if payload[i + 1] == adv_type:
+                result.append(payload[i + 2: i + payload[i] + 1])
+            i += 1 + payload[i]
+        return result
 
-    not_found = False
+class BLEPeripheral:
 
-    print("1")
+    def __init__(self):
+        # constants
 
-    def on_scan(addr_type, addr, name):
-        print("Scanned")
-        if addr_type is not None:
-            print("Found peripheral:", addr_type, addr, name)
-            central.connect()
-        else:
-            nonlocal not_found
-            not_found = True
-            print("No peripheral found.")
+        # class specific
+        self.__handler = BLEHandler()
 
-    print("2")
+        # callbacks
+        self.__connect_callback = None
+        self.__disconnect_callback = None
 
-    central.scan(callback=on_scan)
+    def connect(self, timeout=3000):
+        self.__handler.on_connect(callback=self.__on_connect)
+        self.__handler.on_disconnect(callback=self.__on_disconnect)
+        self.__handler.scan_start(timeout, callback=self.__on_scan)
 
-    print("3")
+    def disconnect(self):
+        self.__handler.disconnect()
 
-    # Wait for connection...
-    while not central.is_connected():
-        utime.sleep_ms(100)
-        if not_found:
-            print("Not found")
-            return
+    def on_button(self, callback):
+        self.__button_callback = callback
 
-    print("Connected")
+    def on_connect(self, callback):
+        self.__connect_callback = callback
 
-    def on_rx(v):
-        print("RX", v)
+    def on_disconnect(self, callback):
+        self.__disconnect_callback = callback
 
-    central.on_notify(on_rx)
+    # +-------------------+
+    # | Private Functions |
+    # +-------------------+
 
-    with_response = False
+    # callback for scan result
+    def __on_scan(self, addr_type, addr, man_data):
+        self.__handler.connect(addr_type, addr)
 
-    i = 0
-    while central.is_connected():
-        try:
-            v = str(i) + "_"
-            print("TX", v)
-            central.write(v, with_response)
-        except:
-            print("TX failed")
-        i += 1
-        utime.sleep_ms(400 if with_response else 30)
+    def __on_connect(self):
+        if self.__connect_callback:
+            self.__connect_callback()
 
-    print("Disconnected")
+    def __on_disconnect(self):
+        if self.__disconnect_callback:
+            self.__disconnect_callback()
 
-demo()
+def on_connect():
+    hub.status_light.on("azure")
+
+
+def on_disconnect():
+    hub.status_light.on("white")
+
+# set up hub
+hub = PrimeHub()
+
+# create remote and connect
+remote = BLEPeripheral()
+utime.sleep(1)
+remote.on_connect(callback=on_connect)
+remote.on_disconnect(callback=on_disconnect)
+remote.connect()
