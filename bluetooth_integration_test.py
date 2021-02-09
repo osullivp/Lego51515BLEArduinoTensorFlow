@@ -1,15 +1,18 @@
+# Lego Spike Prime
 from spike import PrimeHub, LightMatrix, Button, StatusLight, ForceSensor, MotionSensor, Speaker, ColorSensor, App, DistanceSensor, Motor, MotorPair
 from spike.control import wait_for_seconds, wait_until, Timer
+
+# Micropython and Bluetooth imports
+from micropython import const
 import utime
 import ubluetooth
 import ubinascii
 import struct
-from micropython import const
 
 class BLEHandler:
 
     def __init__(self):
-        # constants
+        # constants - note Lego implementation uses different constants vs official Micropython Bluetooth docs
         self.__IRQ_SCAN_RESULT = const(1 << 4)
         self.__IRQ_SCAN_COMPLETE = const(1 << 5)
         self.__IRQ_PERIPHERAL_CONNECT = const(1 << 6)
