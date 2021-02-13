@@ -1,18 +1,15 @@
-# Lego Spike Prime
 from spike import PrimeHub, LightMatrix, Button, StatusLight, ForceSensor, MotionSensor, Speaker, ColorSensor, App, DistanceSensor, Motor, MotorPair
 from spike.control import wait_for_seconds, wait_until, Timer
-
-# Micropython and Bluetooth imports
-from micropython import const
 import utime
 import ubluetooth
 import ubinascii
 import struct
+from micropython import const
 
 class BLEHandler:
 
     def __init__(self):
-        # constants - note Lego implementation uses different constants vs official Micropython Bluetooth docs
+        # constants
         self.__IRQ_SCAN_RESULT = const(1 << 4)
         self.__IRQ_SCAN_COMPLETE = const(1 << 5)
         self.__IRQ_PERIPHERAL_CONNECT = const(1 << 6)
@@ -22,10 +19,10 @@ class BLEHandler:
         self.__IRQ_GATTC_READ_RESULT = const(1 << 11)
         self.__IRQ_GATTC_NOTIFY = const(1 << 13)
 
-        # enter device specific address and service and characteristic UUIDs (from nRF Connect app)
-        self.__DEVICE_ID = b'diN\x80*^'
+        # enter device specific service and characteristic UUIDs (from nRF Connect app)
         self.__PERIPHERAL_SERVICE_UUID = ubluetooth.UUID(0xFFE0)
         self.__PERIPHERAL_SERVICE_CHAR = ubluetooth.UUID(0xFFE1)
+        self.__DEVICE_ID = b'diN\x80*^'
 
         # class specific
         self.__ble = ubluetooth.BLE()
@@ -122,8 +119,11 @@ class BLEHandler:
                 self.__addr = bytes(addr)
                 self.__adv_type = adv_type
                 self.__name = self.__decoder.decode_name(adv_data)
+                print("Name=" + self.__name)
                 self.__services = self.__decoder.decode_services(adv_data)
-                #self.__man_data = self.__decoder.decode_manufacturer(adv_data)
+                print("Getting services")
+                self.__man_data = self.__decoder.decode_manufacturer(adv_data)
+                print("Getting manufacturer details")
                 self.scan_stop()
 
         # called after a ble scan is finished
@@ -184,7 +184,7 @@ class BLEHandler:
 class Decoder:
 
     def __init__(self):
-        self.__COMPANY_IDENTIFIER_CODES = {"0123": "TEST"}
+        self.__COMPANY_IDENTIFIER_CODES = {"4d48": "DSD Tech"}
 
     def decode_manufacturer(self, payload):
         man_data = []
@@ -192,7 +192,9 @@ class Decoder:
         if not n:
             return []
         company_identifier = ubinascii.hexlify(struct.pack('<h', *struct.unpack('>h', n[0])))
+        print("Identifier=" + company_identifier.decode())
         company_name = self.__COMPANY_IDENTIFIER_CODES.get(company_identifier.decode(), "?")
+        print("Company Name=" + company_name)
         company_data = n[0][2:]
         man_data.append(company_identifier.decode())
         man_data.append(company_name)
@@ -222,6 +224,7 @@ class Decoder:
             i += 1 + payload[i]
         return result
 
+
 class BLEPeripheral:
 
     def __init__(self):
@@ -237,6 +240,7 @@ class BLEPeripheral:
     def connect(self, timeout=3000):
         self.__handler.on_connect(callback=self.__on_connect)
         self.__handler.on_disconnect(callback=self.__on_disconnect)
+        self.__handler.on_notify(callback=self.__on_notify)
         self.__handler.scan_start(timeout, callback=self.__on_scan)
 
     def disconnect(self):
@@ -266,6 +270,10 @@ class BLEPeripheral:
     def __on_disconnect(self):
         if self.__disconnect_callback:
             self.__disconnect_callback()
+    
+    def __on_notify(self, data):
+        print("Data received=")
+        print(data)
 
 def on_connect():
     hub.status_light.on("azure")
@@ -273,6 +281,7 @@ def on_connect():
 
 def on_disconnect():
     hub.status_light.on("white")
+
 
 # set up hub
 hub = PrimeHub()
