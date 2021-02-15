@@ -63,9 +63,14 @@ class BLEHandler:
         if not self.__is_connected():
             return
         if adv_value:
-            self.__ble.gattc_write(self.__conn_handle, adv_value, data)
+            #self.__ble.gattc_write(self.__conn_handle, adv_value, data)
+            self.__ble.gattc_write(self.__conn_handle, adv_value, struct.pack("<h", int(data)))
         else:
-            self.__ble.gattc_write(self.__conn_handle, self.__value_handle, data)
+            #self.__ble.gattc_write(self.__conn_handle, self.__value_handle, data)
+            self.__ble.gattc_write(self.__conn_handle, self.__value_handle, struct.pack("<h", int(data)))
+
+        print("Data Written")
+        print(data)
 
     # read gatt client
     def read(self, callback):
@@ -101,10 +106,6 @@ class BLEHandler:
     # | Private Functions |
     # +-------------------+
 
-    # connection status
-    def __is_connected(self):
-        return self.__conn_handle is not None
-
     # ble event handler
     def __irq(self, event, data):
         # called for every result of a ble scan
@@ -114,7 +115,7 @@ class BLEHandler:
             print(self.__decoder.decode_services(adv_data), addr_type)
             #if self.__PERIPHERAL_SERVICE_UUID in self.__decoder.decode_services(adv_data):
             if bytes(self.__DEVICE_ID) == bytes(addr):
-                print('device found')
+                print("Device found")
                 self.__addr_type = addr_type
                 self.__addr = bytes(addr)
                 self.__adv_type = adv_type
@@ -137,7 +138,7 @@ class BLEHandler:
 
         # called if a peripheral device is connected
         elif event == self.__IRQ_PERIPHERAL_CONNECT:
-            print('Device connected')
+            print("Device connected")
             conn_handle, addr_type, addr = data
             self.__conn_handle = conn_handle
             self.__ble.gattc_discover_services(self.__conn_handle)
@@ -151,20 +152,20 @@ class BLEHandler:
 
         # called if a service is returned
         elif event == self.__IRQ_GATTC_SERVICE_RESULT:
-            print('getting service')
+            print("Getting service")
             conn_handle, start_handle, end_handle, uuid = data
             print(uuid)
             if conn_handle == self.__conn_handle and uuid == self.__PERIPHERAL_SERVICE_UUID:
-                print('found service')
+                print("Found service")
                 self.__ble.gattc_discover_characteristics(self.__conn_handle, start_handle, end_handle)
 
         # called if a characteristic is returned
         elif event == self.__IRQ_GATTC_CHARACTERISTIC_RESULT:
-            print('getting characteristics')
+            print("Getting characteristic")
             conn_handle, def_handle, value_handle, properties, uuid = data
             print(uuid)
             if conn_handle == self.__conn_handle and uuid == self.__PERIPHERAL_SERVICE_CHAR:
-                print('found characteristic')
+                print("Found characteristic")
                 self.__value_handle = value_handle
                 # finished discovering, connecting finished
                 self.__connected_callback()
@@ -177,9 +178,14 @@ class BLEHandler:
 
         # called if a notification appears
         elif event == self.__IRQ_GATTC_NOTIFY:
+            print("Notify event raised")
             conn_handle, value_handle, notify_data = data
             if self.__notify_callback:
                 self.__notify_callback(notify_data)
+
+    # connection status
+    def __is_connected(self):
+        return self.__conn_handle is not None
 
 class Decoder:
 
@@ -203,7 +209,7 @@ class Decoder:
 
     def decode_name(self, payload):
         n = self.__decode_field(payload, const(0x09))
-        return str(n[0], "utf-8") if n else "parsing failed!"
+        return str(n[0], "utf-8") if n else "Parsing failed!"
 
     def decode_services(self, payload):
         services = []
@@ -246,6 +252,9 @@ class BLEPeripheral:
     def disconnect(self):
         self.__handler.disconnect()
 
+    def write(self, data):
+        self.__handler.write(data)
+
     def on_button(self, callback):
         self.__button_callback = callback
 
@@ -254,6 +263,9 @@ class BLEPeripheral:
 
     def on_disconnect(self, callback):
         self.__disconnect_callback = callback
+
+    def is_connected(self):
+        return self.__handler.__is_connected()
 
     # +-------------------+
     # | Private Functions |
@@ -288,7 +300,15 @@ hub = PrimeHub()
 
 # create remote and connect
 remote = BLEPeripheral()
+
 utime.sleep(1)
 remote.on_connect(callback=on_connect)
 remote.on_disconnect(callback=on_disconnect)
 remote.connect()
+
+while remote.is_connected() is not None:
+    #print("Connected")
+    if hub.right_button.is_pressed() or hub.left_button.is_pressed():
+        print("Button Pressed")
+        remote.write(1)
+    wait_for_seconds(0.2)
