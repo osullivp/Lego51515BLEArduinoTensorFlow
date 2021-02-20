@@ -6,6 +6,8 @@ import ubinascii
 import struct
 from micropython import const
 
+# need to power cycle Lego Hub between runs of the program in order for read/notify to work reliably
+# just stopping and restarting program is not sufficient to reset everything
 class BLEHandler:
 
     def __init__(self):
@@ -16,8 +18,12 @@ class BLEHandler:
         self.__IRQ_PERIPHERAL_DISCONNECT = const(1 << 7)
         self.__IRQ_GATTC_SERVICE_RESULT = const(1 << 8)
         self.__IRQ_GATTC_CHARACTERISTIC_RESULT = const(1 << 9)
+        self.__IRQ_GATTC_DESCRIPTOR_RESULT = const(1 << 10)
         self.__IRQ_GATTC_READ_RESULT = const(1 << 11)
         self.__IRQ_GATTC_NOTIFY = const(1 << 13)
+        
+        # used to enable notifications
+        self.__NOTIFY_ENABLE = const(1)
 
         # enter device specific service and characteristic UUIDs (from nRF Connect app)
         self.__PERIPHERAL_SERVICE_UUID = ubluetooth.UUID(0xFFE0)
@@ -76,8 +82,11 @@ class BLEHandler:
     def read(self, callback):
         if not self.__is_connected():
             return
+        print("Read requested...")
         self.__read_callback = callback
+        print("Read callback set")
         self.__ble.gattc_read(self.__conn_handle, self.__value_handle)
+        print("Read initiated")
 
     # connect to ble device
     def connect(self, addr_type, addr):
@@ -169,10 +178,22 @@ class BLEHandler:
                 self.__value_handle = value_handle
                 # finished discovering, connecting finished
                 self.__connected_callback()
+                # set notifications to true
+                #self.__ble.gattc_write(conn_handle, 49, struct.pack('<h', self.__NOTIFY_ENABLE), 1)
+        
+        # called if a descriptor is returned
+        elif event == self.__IRQ_GATTC_DESCRIPTOR_RESULT:
+            print("Getting descriptor")
+            conn_handle, dsc_handle, uuid = data
+            print(conn_handle)
+            print(dsc_handle)
+            print(uuid)
 
         # called if data was successfully read
         elif event == self.__IRQ_GATTC_READ_RESULT:
+            print("Read result received")
             conn_handle, value_handle, char_data = data
+            print(char_data)
             if self.__read_callback:
                 self.__read_callback(char_data)
 
@@ -252,6 +273,9 @@ class BLEPeripheral:
     def disconnect(self):
         self.__handler.disconnect()
 
+    def read(self, callback):
+        self.__handler.read(callback)
+
     def write(self, data):
         self.__handler.write(data)
 
@@ -310,5 +334,8 @@ while remote.is_connected() is not None:
     #print("Connected")
     if hub.right_button.is_pressed() or hub.left_button.is_pressed():
         print("Button Pressed")
-        remote.write(1)
-    wait_for_seconds(0.2)
+        print("Waiting for data...")
+        #remote.write(1)
+        while True:
+            #remote.read(callback=print)
+            wait_for_seconds(1)
