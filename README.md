@@ -21,7 +21,7 @@ In searching for a solution to this problem I set out the following criteria:
 Having looked at a number of possible solutions I settled on a three part solution as follows:
 
 #### Part 1
-Lego 51515 set in stock configuration but loaded with the Spike Prime firmware as at Feb 2021, the Lego 51515 firmware does not include the ubluetooth module for BluetoothLE comms
+A single Lego 51515 set in stock configuration but loaded with the Spike Prime firmware. This is because as at Feb 2021, the Lego 51515 firmware does not include the ubluetooth module required for BluetoothLE comms
 The robot design was based on the 'Tricky' robot from the 51515 set but with the addition of a grabber [using this design](https://www.youtube.com/watch?v=gkszh4ap4pI)
 The above grabber design has the benefit of grabbing and then lifting the object using a single motor
 I then added some additional elements in order to create a deck for the Arduino board and battery etc.
