@@ -54,7 +54,7 @@ Even with the above resources, there are a lot of device specific implementation
 - I would strongly recommend reading an article [like this](https://www.oreilly.com/library/view/getting-started-with/9781491900550/ch04.html) to get an overview of how the BluetoothLE system works before delving into any code
 
 #### Arduino
-I used the Arduino Micro which has one hardware UART in addition to the one for the USB cable. This meant that I needed to put one of the Bluetooth adaptors on a SoftwareSerial connection. Let me save you a lot of time if you are going to use a different Arduino by sharing this link:
+I used the Arduino Micro which has one hardware UART in addition to the one for the USB connector. This meant that I needed to put one of the Bluetooth adaptors on a SoftwareSerial connection. Let me save you a lot of time if you are going to use a different Arduino by sharing this link:
 
 - Table of UARTs available by Arduino board type: https://www.arduino.cc/reference/en/language/functions/communication/serial/
 - Check the limitations section in this link. Only certain pins can be used for Rx with SoftwareSerial: https://www.arduino.cc/en/Reference/softwareSerial
