@@ -1,6 +1,7 @@
 # Lego51515ArduinoOpenCV
 
 Objective
+
 The aim of this project is to create Lego Mindstorms 51515 robot that can detect and retrieve a pre-defined object.
 
 At the time of writing (Feb 2021) there are no official or third party sensors that deliver an object detection capability for the Lego Mindstorms 51515 set. Previously, a rudimentary object detection camera capability was provided by the third party Pixy2 camera (https://pixycam.com/pixy2/). In fact a project using this camera was the inspiration for the current project:
