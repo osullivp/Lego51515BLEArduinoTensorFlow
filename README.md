@@ -1,6 +1,6 @@
 # Lego51515ArduinoOpenCV
 
-Objective
+###Objective
 
 The aim of this project is to create Lego Mindstorms 51515 robot that can detect and retrieve a pre-defined object.
 
@@ -15,7 +15,7 @@ In searching for a solution to this problem I set out the following criteria:
 - Other elements should be as 'off the shelf' as possible i.e. keeping hacking to the minimum
 - Avoid having to custom code the object detection element as this is would create a high barrier to entry
 
-Solution
+##Solution
 
 
 
