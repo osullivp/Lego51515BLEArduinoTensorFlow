@@ -8,7 +8,7 @@ At the time of writing (Feb 2021) there are no official or third party sensors t
 
 - https://www.youtube.com/watch?v=aYrysCYupw8
 
-In searching for a solution to this problem I set out the following criteria:
+In searching for a solution to this problem I established the following criteria:
 
 - Create a project that can be relatively simply copied and extended by other users
 - The Lego components should be limited to the stock 51515 set
