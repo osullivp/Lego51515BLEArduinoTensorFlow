@@ -18,7 +18,7 @@ In searching for a solution to this problem I set out the following criteria:
 
 ## Solution
 
-Having looked at a number of possible solutions I settled on a three part solution as follows:
+Having looked at a number of possible solutions I settled on a three part solution. Note that only the code elements are contained in this respository. The robot design is based on the Tricky robot in the 51515 set and the link to the grabber design is included below. The following gives an overview of the solution elements and design choices:
 
 #### Part 1
 - A single Lego 51515 set in stock configuration but loaded with the Spike Prime firmware. This is because as at Feb 2021, the Lego 51515 firmware does not include the ubluetooth module required for BluetoothLE comms
