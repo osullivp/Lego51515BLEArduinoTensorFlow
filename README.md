@@ -61,7 +61,7 @@ I used the Arduino Micro which has one hardware UART in addition to the one for 
 
 Other than that, I would say that the Arduino part of the solution was one of the simplest parts. The Arduino ecosystem is very well supported and coding is very immediate. In fact I decided to use Arduino rather than RPi for this element of the solution to avoid all the issues with Python setup on a RPi and the fact that there are multiple RPi Bluetooth libraries and they don't seem that well covered on forums. The benefit of the HC-05 and HM-10 modules on Arduino is that they use a simple UART serial implementation which (for me at any rate) simplified things enormously.
 
-One thing to look out for when using the HC-05 and HM-10 modules is that internally they operate at 3.3v vs 5v on most Arduinos. This necessitates a voltage divider to be implemented between the Tx of the Arduino and the Rx of the Bluetooth module. Here are a couple of useful articles on the HC-05 and HM-10 modules:
+One thing to look out for when using the HC-05 and HM-10 modules is that internally they operate at 3.3v vs 5v used by most Arduinos. This necessitates a voltage divider to be implemented between the Tx of the Arduino and the Rx of the Bluetooth module. Here are a couple of useful articles on the HC-05 and HM-10 modules:
 
 - HC-05: https://create.arduino.cc/projecthub/electropeak/getting-started-with-hc-05-bluetooth-module-arduino-e0ca81
 - HM-10 (excellent article): http://www.martyncurrey.com/hm-10-bluetooth-4ble-modules/
