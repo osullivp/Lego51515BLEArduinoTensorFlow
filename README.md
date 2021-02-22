@@ -1,4 +1,4 @@
-# Lego51515ArduinoOpenCV
+# Lego51515BLEArduinoOpenCV
 
 ## Objective
 
