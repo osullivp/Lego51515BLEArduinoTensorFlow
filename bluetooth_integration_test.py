@@ -1,10 +1,10 @@
 from spike import PrimeHub, LightMatrix, Button, StatusLight, ForceSensor, MotionSensor, Speaker, ColorSensor, App, DistanceSensor, Motor, MotorPair
 from spike.control import wait_for_seconds, wait_until, Timer
+from micropython import const
 import utime
 import ubluetooth
 import ubinascii
 import struct
-from micropython import const
 
 # need to power cycle Lego Hub between runs of the program in order for read/notify to work reliably
 # just stopping and restarting program is not sufficient to reset everything
@@ -330,12 +330,10 @@ remote.on_connect(callback=on_connect)
 remote.on_disconnect(callback=on_disconnect)
 remote.connect()
 
+# object detection data is requested via a button press
 while remote.is_connected() is not None:
-    #print("Connected")
     if hub.right_button.is_pressed() or hub.left_button.is_pressed():
         print("Button Pressed")
-        print("Waiting for data...")
-        #remote.write(1)
-        while True:
-            #remote.read(callback=print)
-            wait_for_seconds(1)
+        remote.write(1)
+    wait_for_seconds(1)
+    
