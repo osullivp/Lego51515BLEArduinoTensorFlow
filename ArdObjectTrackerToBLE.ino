@@ -14,7 +14,6 @@
   by Paul O'Sullivan
 
 */
-
 #include <SoftwareSerial.h>
 
 SoftwareSerial mySerial(14, 15);  // RX, TX
