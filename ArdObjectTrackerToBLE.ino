@@ -3,7 +3,7 @@
   Language: Wiring/Arduino
 
   This program sends reads object detection data from the Ard Object Tracker app
-  as this data is sent via Bluetooth Classic, this module bridges the data to
+  As this data is sent via Bluetooth Classic, this module bridges the data to
   BluetoothLE so it can be read by a Lego Spike Prime/Robot Inventor 51515 hub
 
   The circuit:
