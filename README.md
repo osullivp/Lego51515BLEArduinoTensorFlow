@@ -67,7 +67,7 @@ One thing to look out for when using the HC-05 and HM-10 modules is that interna
 - HC-05: https://create.arduino.cc/projecthub/electropeak/getting-started-with-hc-05-bluetooth-module-arduino-e0ca81
 - HM-10 (excellent article): http://www.martyncurrey.com/hm-10-bluetooth-4ble-modules/
 
-Here are some other articles I found on my journey:
+Here are some other helpful articles I found on my journey:
 
 ##### Spike Prime Python
 - Some good Lego Spike Prime/51515 Python tutorials: https://primelessons.org/en/Lessons.html
