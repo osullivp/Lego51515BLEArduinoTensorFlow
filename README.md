@@ -35,7 +35,7 @@ I settled on a three part solution. Note that only the code elements are contain
 - This is the key element in the solution as it provides a way to detect objects without having to custom code a TensorFlow app in either Android or RPi Python
 - I did also consider using AppInventor, as this contains a number of [object detection extensions](https://mit-cml.github.io/extensions/), but unfortunately these solutions were limited or too slow
 - I also experimented with a strategy of sticking simple text to the objects to be picked up and programmatically taking pics via AppInventor and then passing these to the [Google Cloud Text Detection API](https://cloud.google.com/vision/docs/ocr). This actually worked quite well but was too slow vs the Ard Detection App
-- Note that the Ard Object Detection app implements the [COCO dataset](https://cocodataset.org/#home). Therefore to avoid having the train a custom model, I decided to use a 'cup' as the object for the robot to pick up. Being a cyclinder, a cup has the added benefit that the robot grabber tool can pick it up consistently from all angles
+- Note that the Ard Object Detection app implements the [COCO dataset](https://cocodataset.org/#home). Therefore to avoid having the train a custom model, I decided to use a 'cup' as the object for the robot to pick up. Being a cyclinder, a cup has the added benefit that the robot grabber tool can pick it up more consistently regardless of approach angle
 
 ## Key Challenges and Learnings
 
