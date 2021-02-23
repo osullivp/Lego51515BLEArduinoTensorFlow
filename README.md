@@ -30,7 +30,7 @@ I settled on a three part solution. Note that only the code elements are contain
 - The reason for using both types of Bluetooth module is that the object detection app described in the next section communicates via Bluetooth Classic, yet the Lego hub communicates via BluetoothLE
 
 #### Part 3
-- The final element in the solution is the Ard Object Detection app which can be found here (Android version): (https://play.google.com/store/apps/details?id=com.studios.code.gem.ardobjecttracker&hl=en_GB&gl=US)
+- The final element in the solution is the Ard Object Detection app which can be found [here](https://play.google.com/store/apps/details?id=com.studios.code.gem.ardobjecttracker&hl=en_GB&gl=US) (Android app). 
 - The Ard Object Detection app provides an object detection capability via the OpenCV libraries and then exposes this as text over a Bluetooth Classic connection
 - This is the key element in the solution as it provides a way to detect objects without having to custom code a TensorFlow app in either Android or RPi Python
 - I did also consider using AppInventor, as this contains a number of [object detection extensions](https://mit-cml.github.io/extensions/), but unfortunately these solutions were limited or too slow
