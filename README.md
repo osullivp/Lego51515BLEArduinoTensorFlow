@@ -10,11 +10,10 @@ At the time of writing (Feb 2021) there are no official or third party sensors t
 
 In searching for a solution to this problem I established the following criteria:
 
+- Demonstrate the integration of computer vision into a Lego 51515 project
+- Demonstrate Bluetooth communication with a non-Lego peripheral
 - Create a project that can be relatively simply copied and extended by other users
-- The Lego components should be limited to the stock 51515 set
-- Other elements should be as 'off the shelf' as possible i.e. keeping hacking to the minimum
-- Avoid having to custom code the object detection element as this is would create a high barrier to entry
-
+- For the Lego part of the solutoion, only use components from the stock 51515 set
 
 ## Solution
 
