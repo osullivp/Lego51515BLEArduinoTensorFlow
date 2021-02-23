@@ -48,7 +48,7 @@ Using BluetoothLE on the Lego Prime/51515 hub is currently not well supported an
 
 Even with the above resources, there are a lot of device specific implementation issues. For instance:
 
-- I needed to use 16bit UUIDs to identify the services and characteristics of the HM-10. You will see a lot of code examples that use 128bit
+- I needed to use 16bit UUIDs to identify the services and characteristics of the HM-10 Bluetooth module. You will see a lot of code examples that use 128bit
 - The HM-10 doesn't seem to supply service data in a passive Bluetooth scan so I had to identify the device by the MAC address (contrary to most examples)
 - I had a lot of issues testing the Bluetooth features on the Lego hub and it took me ages to realise that for some reason you need to completely power down the hub and power up again between code executions. User Vinz alludes to this issue in the Eurobricks thread above. His solution was to detach the USB cable from the Lego hub. I didn't try that myself as just using the hub display for debug would be too limiting for me
 - I would strongly recommend reading an article [like this](https://www.oreilly.com/library/view/getting-started-with/9781491900550/ch04.html) to get an overview of how the BluetoothLE system works before delving into any code
