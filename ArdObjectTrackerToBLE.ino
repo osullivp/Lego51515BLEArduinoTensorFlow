@@ -16,13 +16,43 @@
 */
 #include <SoftwareSerial.h>
 
-SoftwareSerial mySerial(14, 15);  // RX, TX
-String sInputString = "";         // a String to hold incoming data
-String sObjToFind = "cup:0:";     // object to find - see Ard Object Detection app help for details of format
-bool bStringComplete = false;     // whether the string is complete
-bool bGetPosition = false;        // has an object detection request been made
+SoftwareSerial mySerial(14, 15);    // RX, TX
+
+// constants
+const String OBJ_TO_FIND = "cup:0:";      // object to find
+const int SCREEN_WIDTH = 1280;            // max width of Ard Object Tracker screen
+const int SCREEN_HEIGHT = 720;            // max height of Ard Object Tracker screen
+const int BUTTON_PIN = 18;                // test button data pin
+const int TARGET_XPOS = 300;              // posn in tracker app when object is on robot centerline
+const unsigned long DEBOUNCE_DELAY = 50;  // delay for button debounce
+
+// calibration data to convert object size and position in tracker to robot movement
+int iDistCallib[4][2] = { 
+  {400,10},
+  {315,15},
+  {270,20},
+  {225,25}
+};
+int iTurnCalib = 15;                // object X coord to movement degrees conversion
+
+// object detection data
+String sInputString = "";           // incoming data from object detection
+bool bStringComplete = false;       // has a complete line of object data been received
+
+// button handling
+unsigned long lastDebounceTime = 0; // the last time the output pin was toggled
+int buttonState = 0;                // state of the test button (only used in test mode)
+int lastButtonState = LOW;
+
+// state variables
+bool bGetPosition = false;          // has an object detection request been made
+bool bTestMode = false;             // in test mode, a button press initiates data capture
 
 void setup() {
+
+  // test mode that initiates object data request via
+  // button on Arduino board rather than Lego hub
+  bTestMode = true;
 
   // set software serial pins and data rate for BluetoothLE (HM-10 device)
   pinMode(14, INPUT);
@@ -44,43 +74,64 @@ void setup() {
 
 void loop() {
 
-  // get object detection data if a request has been made from the Lego hub
+  // Get object detection data if a request has been made from Lego hub/test button
   if (bGetPosition) {
+    
     while (mySerial.available()>0) {
+      
       // get the new byte:
       char cInChar = (char)mySerial.read();
+      
       // add it to the sInputString:
       sInputString += cInChar;
+      
       // if the incoming character is a newline, set a flag so the main loop can
       // do something about it:
       if (cInChar == '\n') {
         bStringComplete = true;
         bGetPosition = false;
       }
+    
     }
-  // listen for a data request from the Lego hub
+  // listen for an object detection request
   } else if (!bGetPosition){
-    if (Serial1.available()>0) {
-      Serial.println("HM-10 Available");
-      int cInChar = (int)Serial1.read();
-      Serial.println(cInChar);
-      if (cInChar == 1) {
+    
+    if (bTestMode) {
+      
+      // check if the pushbutton is pressed    
+      if (buttonPressed()) {
         bGetPosition = true;
-        Serial.println("Read Requested");
+        Serial.println("Read Requested from test button");
       }
+      
+    } else {
+      
+      if (Serial1.available()>0) {
+        
+        Serial.println("HM-10 Available");
+        int cInChar = (int)Serial1.read();
+        Serial.println(cInChar);
+        
+        if (cInChar == 1) {
+          bGetPosition = true;
+          Serial.println("Read Requested from Lego hub");
+        }
+      
+      }      
     }
   }
 
-  // once a full line of object detection data has been received, send it to the Lego hub
+  // once a full line of object detection data has been received, send to the Lego hub
   if (bStringComplete) {
     Serial.println("Raw Data=" + sInputString);
-    String sOutput = getObjectDetails(sInputString, sObjToFind);
+    String sOutput = getObjectDetails(sInputString, OBJ_TO_FIND);
     if (sOutput != "") {
       Serial.println("Sending data to Lego Hub...");
       char cData[sOutput.length()+1];
-      sOutput.toCharArray(cData, sOutput.length());
+      //sOutput.toCharArray(cData, sOutput.length());
       Serial.println("Serial1 available...Sending...");
       Serial1.println(sOutput);
+      Serial.println(getLegoMvmtData(sOutput,OBJ_TO_FIND));
     }
     bStringComplete = false;
     sInputString = "";
@@ -89,7 +140,7 @@ void loop() {
   
 }
 
-// searches for a specific object detection event from the received data
+// searches for the specified object in the Ard Object Tracker data
 String getObjectDetails(String sData, String sObj) {
   
   String sOutput = "";
@@ -97,14 +148,146 @@ String getObjectDetails(String sData, String sObj) {
   int iObjStart = sData.indexOf(sObj);
   if (iObjStart>=0)
   {
-    Serial.println("Object found!");
+    Serial.println("Start of object at:" + String(iObjStart));
     int iObjEnd = sData.indexOf(sObj, iObjStart+1);
+    Serial.println("End of object at:" + String(iObjEnd));
     if (iObjEnd>iObjStart) {
       sOutput = sData.substring(iObjStart, iObjEnd-1);
+    } else {
+      sOutput = sData.substring(iObjStart, sData.length()-1);
     }
   }
 
   Serial.println("Object data=" + sOutput);
   return sOutput;
+  
+}
+
+// gets the x position from a single line of Ard Object Tracker data
+int getXPos(String sData, String sObj) {
+  
+  String sOutput = "";
+  Serial.println("Searching in: " + sData + " for: " + "Xpos...");
+  int iObjStart = sData.indexOf(sObj);
+  if (iObjStart>=0)
+  {
+    Serial.println("Start of data at: " + String(iObjStart));
+    int iObjEnd = sData.indexOf(",", iObjStart+1);
+    Serial.println("End of data at: " + String(iObjEnd));
+    if (iObjEnd>iObjStart) {
+      sOutput = sData.substring(iObjStart+sObj.length(), iObjEnd);
+    } 
+  }
+
+  Serial.println("XPos=: " + sOutput);
+  return sOutput.toInt();
+  
+}
+
+// gets the object width from a single line of Ard Object Tracker data
+int getWidth(String sData) {
+  
+  String sOutput = "";
+  Serial.println("Searching in: " + sData + " for: " + "width...");
+  int iObjStart = sData.indexOf(",");
+  if (iObjStart>=0)
+  {
+    iObjStart = sData.indexOf(",", iObjStart+1);
+    if (iObjStart>=0)
+    {
+      Serial.println("Start of data at: " + String(iObjStart));
+      int iObjEnd = sData.indexOf(",", iObjStart+1);
+      Serial.println("End of data at: " + String(iObjEnd));
+      if (iObjEnd>iObjStart) {
+        sOutput = sData.substring(iObjStart+1, iObjEnd);
+      }
+    }
+  }
+
+  Serial.println("Width=: " + sOutput);
+  return sOutput.toInt();
+  
+}
+
+// convert X position to robot turn angle
+int getTurnAngle(int iXPos) {
+
+  int iTurnAngle = 0;
+  int iDX = 0;
+
+  iDX = TARGET_XPOS - (iXPos);
+  iTurnAngle = iDX / iTurnCalib;
+
+  return -1*(iTurnAngle);
+
+}
+
+// convert object width to robot movement distance
+int getDistance(int iWidth) {
+
+  int iDistance = 0;
+
+  if (iWidth <= iDistCallib[3][0]) {
+    iDistance = iDistCallib[3][1];
+  } else if ((iWidth > iDistCallib[3][0]) && (iWidth <= iDistCallib[2][0])) {
+    iDistance = iDistCallib[3][1];
+  } else if ((iWidth > iDistCallib[2][0]) && (iWidth <= iDistCallib[1][0])) {
+    iDistance = iDistCallib[2][1];
+  } else if ((iWidth > iDistCallib[1][0]) && (iWidth <= iDistCallib[0][0])) {
+    iDistance = iDistCallib[1][1];
+  } else if (iWidth >= iDistCallib[0][0]) {
+    iDistance = iDistCallib[0][1];
+  }
+
+  return iDistance;
+  
+}
+
+// create a move instruction for the Lego hub
+String getLegoMvmtData(String sData, String sObj) {
+
+  String sMvmtData = "";
+
+  sMvmtData = "move=" + String(getTurnAngle(getXPos(sData, sObj))) + "," + String(getDistance(getWidth(sData)));
+
+  return sMvmtData;
+  
+}
+
+// debounced button press
+bool buttonPressed() {
+
+  bool bPressed = false;
+
+  // read the state of the switch into a local variable:
+  int reading = digitalRead(BUTTON_PIN);
+
+  // check to see if you just pressed the button
+  // (i.e. the input went from LOW to HIGH), and you've waited long enough
+  // since the last press to ignore any noise:
+
+  // If the switch changed, due to noise or pressing:
+  if (reading != lastButtonState) {
+    // reset the debouncing timer
+    lastDebounceTime = millis();
+  }
+
+  if ((millis() - lastDebounceTime) > DEBOUNCE_DELAY) {
+    // whatever the reading is at, it's been there for longer than the debounce
+    // delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (reading != buttonState) {
+      buttonState = reading;
+     if (buttonState == HIGH) {
+        bPressed = true;
+     }
+    }
+  }
+
+  // save the reading. Next time through the loop, it'll be the lastButtonState:
+  lastButtonState = reading;
+
+  return bPressed;
   
 }
