@@ -4,7 +4,7 @@
 
 The aim of this project is to create a Lego Mindstorms 51515 robot that can detect, locate and then pick up a pre-defined object using computer vision.
 
-At the time of writing (Feb 2021) there are no official or third party sensors that deliver an object detection capability for the Lego Mindstorms 51515 set. Previously, a simple object detection camera capability was provided for the EV3 system by the third party [Pixy2 camera](https://pixycam.com/pixy2/). In fact an EV3 solution using this camera was the inspiration for the current project:
+At the time of writing (Feb 2021) there are no official or third party sensors that deliver an object detection capability for the Lego Mindstorms 51515 set. Previously, a simple object detection camera capability was provided for the EV3 system by the third party [Pixy2 camera](https://pixycam.com/pixy2/). In fact, this EV3 solution using the Pixy camera was the inspiration for the current project:
 
 - https://www.youtube.com/watch?v=aYrysCYupw8
 
