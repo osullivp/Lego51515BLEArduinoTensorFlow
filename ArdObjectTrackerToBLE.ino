@@ -49,6 +49,8 @@ bool bGetPosition = false;          // has an object detection request been made
 bool bTestMode = false;             // in test mode, a button press initiates data capture
 
 void setup() {
+
+  pinMode(LED_BUILTIN, OUTPUT);
   
   // test mode that initiates object data request via
   // button on Arduino board rather than Lego hub
@@ -64,9 +66,9 @@ void setup() {
 
   // internal serial for monitoring
   Serial.begin(9600);
-   while (!Serial) {
-    ; // wait for serial port to connect. Needed for native USB port only
-  }
+  //while (!Serial) {
+  //  ; // wait for serial port to connect. Needed for native USB port only
+  //}
 
   Serial.println("Object Detection Starting...");
   
@@ -133,7 +135,7 @@ void loop() {
       if (isObjectDataMatching(sOutput, sLastInputString, OBJ_TO_FIND)) {
         
         sLastInputString = "";
-        digitalWrite(13, HIGH);
+        digitalWrite(LED_BUILTIN, HIGH);
         Serial.println("Sending data to Lego Hub...");
 
         //char cData[sOutput.length()+1];
@@ -146,7 +148,7 @@ void loop() {
       } else {
         
         sLastInputString = sOutput;
-        digitalWrite(13, LOW);
+        digitalWrite(LED_BUILTIN, LOW);
       }
 
     }
