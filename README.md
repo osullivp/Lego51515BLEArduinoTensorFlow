@@ -11,7 +11,7 @@ At the time of writing (Feb 2021) there are no 'off the shelf' official or third
 In searching for a solution to this problem I established the following criteria:
 
 - Demonstrate the integration of computer vision into a Lego 51515 project
-- Demonstrate Bluetooth communication with a non-Lego peripheral
+- Demonstrate Bluetooth communication with a non-Lego peripheral (in this case an HM-10 module)
 - Create a project that can be relatively simply copied and extended by other users
 - For the Lego part of the solution, only use components from the stock 51515 set
 
