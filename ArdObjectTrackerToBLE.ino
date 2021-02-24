@@ -311,6 +311,8 @@ bool buttonPressed() {
   
 }
 
+// checks if two lines of object detection data are 'the same'
+// uses a threshold test as bounding box data is not exactly consistent from frame to frame
 bool isObjectDataMatching(String sObj1, String sObj2, String sObjToFind) {
 
   bool bResult = false;
