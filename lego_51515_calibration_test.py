@@ -2,6 +2,7 @@ from spike import PrimeHub, LightMatrix, Button, StatusLight, ForceSensor, Motio
 from spike.control import wait_for_seconds, wait_until, Timer
 from math import *
 
+# code to help calibrate Lego robot movements to object detection data
 hub = PrimeHub()
 
 motor_pair = MotorPair('A', 'B')
@@ -23,7 +24,10 @@ moveRobot = True
 
 if moveRobot == False:
     openGrip()
-else:    
-    motor_pair.move_tank(-46, 'degrees', 20, 0)
-    motor_pair.move(15, 'cm')
+else:
+    # adjust values as required
+    testAngle = 10
+    testMove = 10
+    motor_pair.move_tank(testAngle, 'degrees', 20, 0)
+    motor_pair.move(testMove, 'cm')
     closeGrip()
