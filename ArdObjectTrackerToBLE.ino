@@ -1,18 +1,17 @@
 /*
   Bluetooth Classic to Bluetooth Low Energy bridge for Ard Object Tracker app
   Language: Wiring/Arduino
-
+  
   This program sends reads object detection data from the Ard Object Tracker app
   As this data is sent via Bluetooth Classic, this module bridges the data to
   BluetoothLE so it can be read by a Lego Spike Prime/Robot Inventor 51515 hub
-
+  
   The circuit:
   - HM-10 BluetoothLE module on Serial1 (Rx and Tx pins)
   - HC-05 Bluetooth Classic module on SoftwareSerial (pins 14(Rx) and 15(Tx))
-
+  
   created 22 Feb 2021
   by Paul O'Sullivan
-
 */
 #include <SoftwareSerial.h>
 
@@ -37,6 +36,7 @@ int iTurnCalib = 15;                // object X coord to movement degrees conver
 
 // object detection data
 String sInputString = "";           // incoming data from object detection
+String sLastInputString = "";
 bool bStringComplete = false;       // has a complete line of object data been received
 
 // button handling
@@ -49,7 +49,7 @@ bool bGetPosition = false;          // has an object detection request been made
 bool bTestMode = false;             // in test mode, a button press initiates data capture
 
 void setup() {
-
+  
   // test mode that initiates object data request via
   // button on Arduino board rather than Lego hub
   bTestMode = true;
@@ -121,21 +121,40 @@ void loop() {
     }
   }
 
-  // once a full line of object detection data has been received, send to the Lego hub
+  // once two full line of matching object detection data have been received, send to Lego hub
+  // checks for two full consecutive lines to ensure a stable set of data
   if (bStringComplete) {
+    
     Serial.println("Raw Data=" + sInputString);
     String sOutput = getObjectDetails(sInputString, OBJ_TO_FIND);
+    
     if (sOutput != "") {
-      Serial.println("Sending data to Lego Hub...");
-      char cData[sOutput.length()+1];
-      //sOutput.toCharArray(cData, sOutput.length());
-      Serial.println("Serial1 available...Sending...");
-      Serial1.println(sOutput);
-      Serial.println(getLegoMvmtData(sOutput,OBJ_TO_FIND));
+      
+      if (isObjectDataMatching(sOutput, sLastInputString, OBJ_TO_FIND)) {
+        
+        sLastInputString = "";
+        digitalWrite(13, HIGH);
+        Serial.println("Sending data to Lego Hub...");
+
+        //char cData[sOutput.length()+1];
+        //sOutput.toCharArray(cData, sOutput.length());
+
+        String sMvmtData = getLegoMvmtData(sOutput,OBJ_TO_FIND);
+        Serial1.print(sMvmtData);
+        Serial.println(sMvmtData);     
+            
+      } else {
+        
+        sLastInputString = sOutput;
+        digitalWrite(13, LOW);
+      }
+
     }
+    
     bStringComplete = false;
     sInputString = "";
     sOutput = "";
+    
   }
   
 }
@@ -248,7 +267,7 @@ String getLegoMvmtData(String sData, String sObj) {
 
   String sMvmtData = "";
 
-  sMvmtData = "move=" + String(getTurnAngle(getXPos(sData, sObj))) + "," + String(getDistance(getWidth(sData)));
+  sMvmtData = "move=," + String(getTurnAngle(getXPos(sData, sObj))) + "," + String(getDistance(getWidth(sData)));
 
   return sMvmtData;
   
@@ -289,5 +308,25 @@ bool buttonPressed() {
   lastButtonState = reading;
 
   return bPressed;
+  
+}
+
+bool isObjectDataMatching(String sObj1, String sObj2, String sObjToFind) {
+
+  bool bResult = false;
+  
+  int iObj1XPos = getXPos(sObj1, sObjToFind);
+  int iObj2XPos = getXPos(sObj2, sObjToFind);
+
+  int iResult = iObj1XPos - iObj2XPos;
+  int iAbsResult = abs(iResult);
+
+  Serial.println("Difference=" + String(iAbsResult));
+
+  if (iAbsResult <=10) {
+    bResult = true;
+  }
+
+  return bResult;
   
 }
