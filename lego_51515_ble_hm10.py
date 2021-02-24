@@ -351,6 +351,7 @@ remote.on_connect(callback=on_connect)
 remote.on_disconnect(callback=on_disconnect)
 remote.connect()
 
+# robot should start in grabber open position
 grabberOpen = True
 
 # when movement instructions are received, approach and pickup object
@@ -364,7 +365,7 @@ while remote.is_connected() is not None:
         forward = int(moveDataElements[2])
         print("Angle=" + str(angle))
         print("Forward=" + str(forward))
-        # move robot and then activate gripper 
+        # move robot and then activate grabber 
         motor_pair.move_tank(angle, 'degrees', 20, 0)
         motor_pair.move(forward, 'cm')
         closeGrip()
