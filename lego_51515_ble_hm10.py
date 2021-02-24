@@ -6,8 +6,7 @@ import ubluetooth
 import ubinascii
 import struct
 
-# need to power cycle Lego Hub between runs of the program in order for read/notify to work reliably
-# just stopping and restarting program is not sufficient to reset everything
+# wrapper for ubluetooth module (HM-10 specific implementation)
 class BLEHandler:
 
     def __init__(self):
@@ -28,7 +27,8 @@ class BLEHandler:
         # enter device specific service and characteristic UUIDs (from nRF Connect app)
         self.__PERIPHERAL_SERVICE_UUID = ubluetooth.UUID(0xFFE0)
         self.__PERIPHERAL_SERVICE_CHAR = ubluetooth.UUID(0xFFE1)
-        self.__DEVICE_ID = b'diN\x80*^'
+        # enter device ID here
+        self.__DEVICE_ID = b'\x00\x00\x00\x00\x00\x00'
 
         # class specific
         self.__ble = ubluetooth.BLE()
@@ -122,8 +122,7 @@ class BLEHandler:
             addr_type, addr, adv_type, rssi, adv_data = data
             print(ubinascii.hexlify(addr))
             print(self.__decoder.decode_services(adv_data), addr_type)
-            #if self.__PERIPHERAL_SERVICE_UUID in self.__decoder.decode_services(adv_data):
-            if bytes(self.__DEVICE_ID) == bytes(addr):
+            if ubinascii.hexlify(self.__DEVICE_ID) == ubinascii.hexlify(addr):
                 print("Device found")
                 self.__addr_type = addr_type
                 self.__addr = bytes(addr)
@@ -208,6 +207,7 @@ class BLEHandler:
     def __is_connected(self):
         return self.__conn_handle is not None
 
+# helper class to decode ubluetooth data elements
 class Decoder:
 
     def __init__(self):
@@ -251,7 +251,7 @@ class Decoder:
             i += 1 + payload[i]
         return result
 
-
+# wrapper for a Bluetooth peripheral
 class BLEPeripheral:
 
     def __init__(self):
@@ -263,6 +263,8 @@ class BLEPeripheral:
         # callbacks
         self.__connect_callback = None
         self.__disconnect_callback = None
+
+        self.__move_data = None
 
     def connect(self, timeout=3000):
         self.__handler.on_connect(callback=self.__on_connect)
@@ -291,6 +293,9 @@ class BLEPeripheral:
     def is_connected(self):
         return self.__handler.__is_connected()
 
+    def getMoveData(self):
+        return self.__move_data
+
     # +-------------------+
     # | Private Functions |
     # +-------------------+
@@ -310,6 +315,9 @@ class BLEPeripheral:
     def __on_notify(self, data):
         print("Data received=")
         print(data)
+        if data != b'\x00':
+            self.__move_data = data
+            print("Move data saved")
 
 def on_connect():
     hub.status_light.on("azure")
@@ -318,22 +326,47 @@ def on_connect():
 def on_disconnect():
     hub.status_light.on("white")
 
+def closeGrip():
+    motor_e.set_default_speed(50)
+    motor_e.run_for_rotations(+1.50)
 
-# set up hub
+def openGrip():
+    motor_e.set_default_speed(50)
+    motor_e.run_for_rotations(-1.50)
+
+# set up hub, motors and sensors
 hub = PrimeHub()
+motor_pair = MotorPair('A', 'B')
+motor_pair.set_motor_rotation(17.5, 'cm')
+motor_pair.set_default_speed(20)
+colour_c = ColorSensor('C')
+distance = DistanceSensor('D')
+motor_e = Motor('E')
 
 # create remote and connect
 remote = BLEPeripheral()
 
+# scan for peripheral and connect if found
 utime.sleep(1)
 remote.on_connect(callback=on_connect)
 remote.on_disconnect(callback=on_disconnect)
 remote.connect()
 
-# object detection data is requested via a button press
+grabberOpen = True
+
+# when movement instructions are received, approach and pickup object
 while remote.is_connected() is not None:
-    if hub.right_button.is_pressed() or hub.left_button.is_pressed():
-        print("Button Pressed")
-        remote.write(1)
-    wait_for_seconds(1)
-    
+    if grabberOpen == True and remote.getMoveData() is not None:
+        # extract robot instructions from received data
+        moveData = remote.getMoveData().decode('ascii')
+        print("Move data= " + moveData)
+        moveDataElements = moveData.split(",")
+        angle = int(moveDataElements[1])
+        forward = int(moveDataElements[2])
+        print("Angle=" + str(angle))
+        print("Forward=" + str(forward))
+        # move robot and then activate gripper 
+        motor_pair.move_tank(angle, 'degrees', 20, 0)
+        motor_pair.move(forward, 'cm')
+        closeGrip()
+        grabberOpen = False
