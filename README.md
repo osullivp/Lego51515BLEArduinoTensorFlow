@@ -13,7 +13,7 @@ In searching for a solution to this problem I established the following criteria
 - Demonstrate the integration of computer vision into a Lego 51515 project
 - Demonstrate Bluetooth communication with a non-Lego peripheral
 - Create a project that can be relatively simply copied and extended by other users
-- For the Lego part of the solutoion, only use components from the stock 51515 set
+- For the Lego part of the solution, only use components from the stock 51515 set
 
 ## Solution
 
