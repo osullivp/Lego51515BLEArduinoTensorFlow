@@ -1,4 +1,4 @@
-# Lego51515BLEArduinoOpenCV
+# Lego51515BLEArduinoTensorFlow
 
 ## Objective
 
@@ -40,7 +40,7 @@ I settled on a three part solution. Note that only the code elements are contain
 ## Key Challenges and Learnings
 
 #### BluetoothLE
-Using BluetoothLE on the Lego Prime/51515 hub is currently not well supported and there are very few forum posts. I started to make much more progess however by reading the following:
+Using BluetoothLE on the Lego Prime/51515 hub is currently not that well supported and there are very few forum posts on the subject. I started to make much more progess however by reading the following:
 
 - MicroPython 1.12 documentation for the uBluetooth module: http://docs.micropython.org/en/v1.12/library/ubluetooth.html - I wasted a lot of time looking at the most recent documentation 1.14 whereas the Spike Prime firmware uses the older version
 - This excellent thread on Eurobricks: https://www.eurobricks.com/forum/index.php?/forums/topic/180029-spike-prime-powerup-remote-in-python-noob-needs-help/
