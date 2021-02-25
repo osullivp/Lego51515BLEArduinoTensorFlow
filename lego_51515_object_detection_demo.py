@@ -25,6 +25,7 @@ class BLEHandler:
         self.__NOTIFY_ENABLE = const(1)
 
         # enter device specific service and characteristic UUIDs (from nRF Connect app)
+        # the service and characteristic UUIDs below are for the HM-10 BluetoothLE module
         self.__PERIPHERAL_SERVICE_UUID = ubluetooth.UUID(0xFFE0)
         self.__PERIPHERAL_SERVICE_CHAR = ubluetooth.UUID(0xFFE1)
         # enter peripheral device ID here
