@@ -19,17 +19,17 @@ In searching for a solution to this problem I established the following criteria
 
 I settled on a three part solution. Note that only the code elements are contained in this repository as the basic robot design is based on the Tricky robot in the 51515 set and the link to the grabber design is included below. The following gives an overview of the solution elements and design choices:
 
-#### Part 1
+#### Part 1: Lego Mindstorms 51515 Robot
 - A single Lego 51515 set in stock configuration but loaded with the Spike Prime firmware. This is because as at Feb 2021, the Lego 51515 firmware does not include the ubluetooth module required for BluetoothLE comms
 - The robot design was based on the 'Tricky' robot from the 51515 set but with the addition of a grabber [using this design](https://www.youtube.com/watch?v=gkszh4ap4pI). This grabber design has the benefit of grabbing and then lifting the object using a single motor
 - I then added some additional elements in order to create a deck for the Arduino board and battery etc.
 - The software consists of a single MicroPython file that contains code to a) connect to the HM-10 BluetoothLE module on the Arduino board and b) handle movement, edge detection, controlling the grabber etc.
 
-#### Part 2
+#### Part 2: Arduino board
 - An Arduino board based on the Arduino Micro. The board also contains both an HC-05 Bluetooth Classic module and an HM-10 BluetoothLE module
 - The reason for using both types of Bluetooth module is that the object detection app described in the next section communicates via Bluetooth Classic, yet the Lego hub communicates via BluetoothLE
 
-#### Part 3
+#### Part 3: Ard Object Tracker Android App
 - The final element in the solution is the Ard Object Detection app which can be found [here](https://play.google.com/store/apps/details?id=com.studios.code.gem.ardobjecttracker&hl=en_GB&gl=US) (Android app)
 - The Ard Object Detection app provides an object detection capability via TensorFlow Lite and then exposes this as text over a Bluetooth Classic connection
 - This is the key element in the solution as it provides a way to detect objects without having to custom code a TensorFlow app in either Android or RPi Python
