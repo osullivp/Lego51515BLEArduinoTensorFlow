@@ -27,7 +27,7 @@ class BLEHandler:
         # enter device specific service and characteristic UUIDs (from nRF Connect app)
         self.__PERIPHERAL_SERVICE_UUID = ubluetooth.UUID(0xFFE0)
         self.__PERIPHERAL_SERVICE_CHAR = ubluetooth.UUID(0xFFE1)
-        # enter device ID here
+        # enter peripheral device ID here
         self.__DEVICE_ID = b'\x00\x00\x00\x00\x00\x00'
 
         # class specific
@@ -296,6 +296,9 @@ class BLEPeripheral:
     def getMoveData(self):
         return self.__move_data
 
+    def resetMoveData(self):
+        self.__move_data = None
+
     # +-------------------+
     # | Private Functions |
     # +-------------------+
@@ -321,6 +324,7 @@ class BLEPeripheral:
 
 def on_connect():
     hub.status_light.on("azure")
+
 
 def on_disconnect():
     hub.status_light.on("white")
@@ -351,13 +355,10 @@ remote.on_connect(callback=on_connect)
 remote.on_disconnect(callback=on_disconnect)
 remote.connect()
 
-# robot should start in grabber open position
 grabberOpen = True
 
-# when movement instructions are received, approach and pickup object
 while remote.is_connected() is not None:
     if grabberOpen == True and remote.getMoveData() is not None:
-        # extract robot instructions from received data
         moveData = remote.getMoveData().decode('ascii')
         print("Move data= " + moveData)
         moveDataElements = moveData.split(",")
@@ -365,8 +366,12 @@ while remote.is_connected() is not None:
         forward = int(moveDataElements[2])
         print("Angle=" + str(angle))
         print("Forward=" + str(forward))
-        # move robot and then activate grabber 
         motor_pair.move_tank(angle, 'degrees', 20, 0)
         motor_pair.move(forward, 'cm')
         closeGrip()
         grabberOpen = False
+    elif grabberOpen == False:
+        if hub.left_button.is_pressed() or hub.left_button.is_pressed():
+            openGrip()
+            remote.resetMoveData();
+            grabberOpen = True
