@@ -358,6 +358,7 @@ remote.connect()
 
 grabberOpen = True
 
+# when an object detection notification is received, go and pickup the object
 while remote.is_connected() is not None:
     if grabberOpen == True and remote.getMoveData() is not None:
         moveData = remote.getMoveData().decode('ascii')
@@ -372,6 +373,7 @@ while remote.is_connected() is not None:
         closeGrip()
         grabberOpen = False
     elif grabberOpen == False:
+        # if an object has been picked up, pressing a button resets the robot
         if hub.right_button.is_pressed() or hub.left_button.is_pressed():
             openGrip()
             remote.resetMoveData();
