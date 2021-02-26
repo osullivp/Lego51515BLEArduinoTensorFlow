@@ -1,5 +1,5 @@
 /*
-  Bluetooth Classic to Bluetooth Low Energy bridge for Ard Object Tracker app
+  Bluetooth Classic to Bluetooth Low Energy bridge for the Ard Object Tracker app
   Language: Wiring/Arduino
   
   This program sends reads object detection data from the Ard Object Tracker app
