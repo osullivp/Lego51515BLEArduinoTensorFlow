@@ -123,7 +123,7 @@ void loop() {
     }
   }
 
-  // once two full line of matching object detection data have been received, send to Lego hub
+  // once two full lines of matching object detection data have been received, send to Lego hub
   // checks for two full consecutive lines to ensure a stable set of data
   if (bStringComplete) {
     
