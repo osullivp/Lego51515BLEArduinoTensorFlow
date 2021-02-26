@@ -372,7 +372,7 @@ while remote.is_connected() is not None:
         closeGrip()
         grabberOpen = False
     elif grabberOpen == False:
-        if hub.left_button.is_pressed() or hub.left_button.is_pressed():
+        if hub.right_button.is_pressed() or hub.left_button.is_pressed():
             openGrip()
             remote.resetMoveData();
             grabberOpen = True
