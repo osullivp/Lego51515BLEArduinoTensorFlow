@@ -357,8 +357,8 @@ remote.connect()
 
 grabberOpen = True
 
-# when an object detection notification is received, go and pickup the object
 while remote.is_connected() is not None:
+    # when an object detection notification is received, go and pickup the object
     if grabberOpen == True and remote.getMoveData() is not None:
         moveData = remote.getMoveData().decode('ascii')
         print("Move data= " + moveData)
