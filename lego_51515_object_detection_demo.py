@@ -347,10 +347,10 @@ colour_c = ColorSensor('C')
 distance = DistanceSensor('D')
 motor_e = Motor('E')
 
-# create remote and connect
+# create a peripheral object
 remote = BLEPeripheral()
 
-# scan for peripheral and connect if found
+# scan for the target device and connect if found
 utime.sleep(1)
 remote.on_connect(callback=on_connect)
 remote.on_disconnect(callback=on_disconnect)
