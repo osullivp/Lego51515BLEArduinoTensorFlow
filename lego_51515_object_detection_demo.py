@@ -326,7 +326,6 @@ class BLEPeripheral:
 def on_connect():
     hub.status_light.on("azure")
 
-
 def on_disconnect():
     hub.status_light.on("white")
 
